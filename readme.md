@@ -61,7 +61,7 @@
 
 # Instructions to Run
 
-The [main.ipynb](main.ipynb) notebook can be executed all to test on [covered_bolero.mp4](videos/piano/covered_bolero.mp4). Cells are titled according to the operations that are being performed, it's advisable to execute cells one by one, the following cells are alternative to the other: either execute the automatic or the manual section to extract the rectifying matrix (`Keyboard rectification`)
+The [main.ipynb](main.ipynb) notebook can be executed all to test on [covered_bolero.mp4](videos/piano/covered_bolero.mp4). Cells are titled according to the operations that are being performed, it's advisable to execute cells one by one, the following cells are alternative to the other: "Automatic" and "Manual" under the `Keyboard rectification` section.
 
 The [main.ipynb](main.ipynb) notebook uses:
 - The functions defined in [utils.py](utils.py) and will save the results in the folder where the input video is located (so for our example it will save in `videos/piano/`)

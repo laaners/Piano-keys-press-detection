@@ -9,12 +9,25 @@ import time
 from midiutil.MidiFile import MIDIFile
 
 def threadMultiple(functions, results):
+    """Parallelize execution of given functions
+
+    Parameters
+    ---------
+    functions : list of python Callback
+        functions to parallelize, with the following format: 
+        [
+            {"function": foo, "args": [x, y, ...]},
+            {"function": bar, "args": [x, y, ...]},
+            ...        
+        ]
+    
+    results : list
+        list containing the output(s) of the functions
+    """
     def threadFunction(callback_and_args, results, index):
-        #print("Start {}".format(index))
         callback = callback_and_args["function"]
         callback_args = callback_and_args["args"]
         results[index] = callback(*callback_args)
-        #print("End {}".format(index))
     threads = [None]*len(functions)
     for i in range(len(functions)):
         threads[i] = threading.Thread(target=threadFunction, args=(functions[i],results,i))
@@ -24,6 +37,17 @@ def threadMultiple(functions, results):
         thread.join()
 
 def plotImg(img, cmap=None):
+    """Displays the given image
+
+    Parameters
+    ---------
+    img : numpy array
+        the image to display
+    
+    cmap : str, optional
+        Colormap  
+    """
+
     if cmap is None:
         plt.imshow(img)
         plt.show()
@@ -34,6 +58,32 @@ def plotImg(img, cmap=None):
         plt.close()
 
 def extractFrames(video, start_time, end_time=None, samples_per_second=None, callback=None, callback_args=None):
+    """Extracts some frames from a video
+
+    Parameters
+    ---------
+    video : str
+        the path to the video
+    
+    start_time : float
+        the starting time in seconds
+    
+    end_time : float, optional
+
+    samples_per_second : float, optional
+
+    callback : python Callback
+        a function that processes a frame (numpy array) and outputs another frame 
+    
+    callback_args : list
+        arguments of the callback function
+
+    Outputs
+    ---------
+    ris : list of frames
+        processed by callback function
+    """
+
     cap = cv2.VideoCapture(video)
     fps = np.ceil(cap.get(cv2.CAP_PROP_FPS))
 
@@ -72,6 +122,35 @@ def extractFrames(video, start_time, end_time=None, samples_per_second=None, cal
     return ris
 
 def playVideo(video, start_time, end_time=None, frames_every=1, callback=None, callback_args=None, save_video=False, video_name="out.mp4", video_size=(1920,1080)):
+    """Plays the video with opencv library
+
+    Parameters
+    ---------
+    video : str
+        the path to the video
+    
+    start_time : float
+        the starting time in seconds
+    
+    end_time : float, optional
+
+    frames_every : int, optional
+        interval to take frames between
+
+    callback : python Callback
+        a function that processes a frame (numpy array) and outputs another frame 
+    
+    callback_args : list
+        arguments of the callback function
+    
+    save_video : bool, optional
+
+    video_name : str, optional
+        name of saved video file
+    
+    video_size : tuple, optional
+        (width, height) of saved video
+    """
     cap = cv2.VideoCapture(video)
     fps = np.ceil(cap.get(cv2.CAP_PROP_FPS))
 
@@ -133,14 +212,26 @@ def playVideo(video, start_time, end_time=None, frames_every=1, callback=None, c
             break
     cv2.destroyAllWindows()
 
-def segmentationMaskTuning(frame, roi_x=None, roi_y=None):
-    if roi_x is None or roi_y is None:
-        roi = frame.copy()
-    else:
-        print(roi_y[0])
-        print(roi_y[1])
-        roi = frame.copy()[roi_x[0]:roi_x[1], roi_y[0]:roi_y[1]]
+def segmentationMaskTuning(frame):
+    """Enables manual selection of HSV masks
 
+    Parameters
+    ---------
+    frame : numpy array
+        the input frame
+    
+    Outputs
+    ---------
+    lower_thresh : list
+        lower thresholds for values of H,S and V
+    
+    upper_thresh : list
+        upper thresholds for values of H,S and V
+    
+    mask : numpy array
+        the HSV mask
+    """
+    roi = frame.copy()
     hsv = cv2.cvtColor(roi, cv2.COLOR_BGR2HSV)
 
     lower_thresh = np.array([128,128,128], dtype=np.uint8)
@@ -186,6 +277,27 @@ def segmentationMaskTuning(frame, roi_x=None, roi_y=None):
     return lower_thresh, upper_thresh, mask
 
 def segmentationInRange(frame, lower_thresh, upper_thresh, show=True):
+    """Returns image masks from HSV thresholds
+
+    Parameters
+    ---------
+    frame : numpy array
+        the input frame
+
+    lower_thresh : list
+        lower thresholds for values of H,S and V
+    
+    upper_thresh : list
+        upper thresholds for values of H,S and V
+    
+    show : bool , optional
+        if true, plots the mask
+    
+    Outputs
+    ---------
+    mask : numpy array
+        the HSV mask
+    """
     frame_hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
     frame_binary = cv2.inRange(frame_hsv, lower_thresh, upper_thresh)
     if show:
@@ -197,17 +309,48 @@ def segmentationInRange(frame, lower_thresh, upper_thresh, show=True):
         plt.show()
         plt.close()
     return frame_binary
-
-def cannyEdgeDetector(frame):
-    return cv2.Canny(frame, 255/3, 255, apertureSize=3)
-
+   
 def getRectifyingMatrix(frame, lower_thresh, upper_thresh, processed=False, pts2=None):
+    """Returns rectifying matrix H for keyboard
+
+    Parameters
+    ---------
+    frame : numpy array
+        the input frame, can be both binary (processed = true) or with colors
+
+    lower_thresh : list
+        lower thresholds for values of H,S and V
+
+    upper_thresh : list
+        upper thresholds for values of H,S and V
+
+    processed : bool, optional
+        whether the input frame is already a mask
+
+    pts2 : numpy array , optional
+        list of coordinates of the corresponding quadrangle vertices in the destination image
+
+    Outputs
+    ---------
+    H_shape : numpy array
+        the rectifying homography
+
+    pts1 : numpy array
+        coordinates of vertices corresponding to four corners of keyboard in the source image
+    
+    pts2 : numpy array
+        coordinates of vertices corresponding to four corners of keyboard in the rectified image
+
+    size : tuple
+        (keyboard_width, keyboard_height)
+    """
     if not processed:
         frame_segmented = segmentationInRange(frame, lower_thresh, upper_thresh, False)
     else:
         frame_segmented = frame.copy()
 
-    frame_canny = cannyEdgeDetector(frame_segmented)
+    frame_canny = cv2.Canny(frame_segmented, 255/3, 255, apertureSize=3)
+
 
     # empty canvas
     frame_empty = np.zeros(shape=frame.shape[0:2], dtype=np.uint8)
@@ -301,6 +444,27 @@ def getRectifyingMatrix(frame, lower_thresh, upper_thresh, processed=False, pts2
     return np.eye(3), None, None, (10,5)
 
 def getRectifyingMatrixManual(frame):
+    """Returns rectifying matrix H, keyboard corner points taken manually
+
+    Parameters
+    ---------
+    frame : numpy array
+        the input frame, can be both binary (processed = true) or with colors
+
+    Outputs
+    ---------
+    H_shape : numpy array
+        the rectifying homography
+
+    pts1 : numpy array
+        coordinates of vertices corresponding to four corners of keyboard in the source image
+    
+    pts2 : numpy array
+        coordinates of vertices corresponding to four corners of keyboard in the rectified image
+
+    size : tuple
+        (keyboard_width, keyboard_height)
+    """
     approx = []
     h, w, _ = frame.shape
     scaling_h = h/720
@@ -364,17 +528,74 @@ def getRectifyingMatrixManual(frame):
     return H_shape, pts1, pts2, (keyboard_width, keyboard_height)
 
 def rectifyWithMatrix(frame, lower_thresh, upper_thresh, H_shape=None, rotation=np.eye(3), pts2=None):
+    """Returns rectified frame
+
+    Parameters
+    ---------
+    frame : numpy array
+        the input frame with colors
+
+    lower_thresh : list
+        lower thresholds for values of H,S and V
+
+    upper_thresh : list
+        upper thresholds for values of H,S and V
+    
+    H_shape : numpy array
+        the rectifying homography
+    
+    rotation : numpy array
+        the rotation matrix
+
+    pts2 : numpy array , optional
+        list of coordinates of the corresponding quadrangle vertices in the destination image
+
+    Outputs
+    ---------
+    rectified frame : numpy array
+    """
     if H_shape is None and pts2 is not None:
         H_shape, _, _, _ = getRectifyingMatrix(frame, lower_thresh, upper_thresh, pts2=pts2) #if we need to recompute H
     H_shape = np.dot(rotation, H_shape)
     return cv2.warpPerspective(frame, H_shape, (1920+192,1080+108)) #apply H
 
-def projectPoint(p, H):
+def projectPoint(p, H): 
     p_ = np.dot(H,[p[0], p[1], 1])
     p_ /= p_[2]
     return p_.astype(int)[0:2]
 
 def getKeyboardContour(frame, lower_thresh, upper_thresh, pts2, H_shape, keyboard_shape, frame_segmented=None):
+    """Finds contours of the regions of each key
+
+    Parameters
+    ---------
+    frame : numpy array
+        the input frame with colors
+
+    lower_thresh : list
+        lower thresholds for values of H,S and V
+
+    upper_thresh : list
+        upper thresholds for values of H,S and V
+        
+    pts2 : numpy array , optional
+        list of coordinates of the corresponding quadrangle vertices in the destination image
+    
+    H_shape : numpy array
+        the rectifying homography
+    
+    keyboard_shape : tuple
+        (keyboard_width , keyboard_height)
+
+    frame_segmented : numpy array, optional
+        the binary image containing the keyboard mask
+
+        
+    Outputs
+    ---------
+    keys : list
+        list containing the contours of each key
+    """
     if pts2 is None:
         return None
 
@@ -668,6 +889,34 @@ def getKeyboardContour(frame, lower_thresh, upper_thresh, pts2, H_shape, keyboar
 
 def candidateKeys(frame_segmented, keys,
                   white=True, white_hough_thresh=60, black_hough_thresh=40):
+    """Selects the candidate keys with hough lines
+
+    Parameters
+    ---------
+    frame_segmented : numpy array
+        the binary image containing the keyboard mask
+
+    keys : list
+        list containing the contours of each key
+    
+    white : bool , optional
+        true if we are selecting white keys, false if black keys
+
+    white_hough_thresh : int , optional
+        Accumulator threshold for hough lines algorithm for white keys
+
+    black_hough_thresh : int , optional
+        Accumulator threshold for hough lines algorithm for black keys
+
+    Outputs
+    ---------
+    candidate_keys : list
+        list of contours of the candidate keys
+
+    frame_lines : numpy array
+        frame with drawn hough lines
+
+    """
     if not white:
         frame_lines = np.zeros(frame_segmented.shape[0:2])
         contours, _ = cv2.findContours(frame_segmented, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
@@ -787,6 +1036,18 @@ def candidateKeys(frame_segmented, keys,
     return candidate_keys, frame_lines
 
 def mpHandTrackLandmarks(frame):
+    """Uses mediapipe to find finger landmarks
+
+    Parameters
+    ---------
+    frame : numpy array
+        any frame of the video
+
+    Outputs
+    ---------
+    ris : dict
+        {"WRIST_0": (x,y) , ...} , dictionary mapping hand landmarks to image points
+    """
     frame_tracked = frame.copy()
     drawingModule = mp.solutions.drawing_utils
     handsModule = mp.solutions.hands
@@ -810,6 +1071,33 @@ def mpHandTrackLandmarks(frame):
 def pointInKeyContour(p, frame_ris, notes_to_play,
                       candidate_white_keys, candidate_black_keys,
                       white_keys_map, black_keys_map):
+    """Checks whether point p in inside a candidate key contour.
+        If yes, add it to notes_to_play
+
+    Parameters
+    ---------
+    p : tuple
+        the point to check (landmark coordinates)
+
+    frame_ris : numpy array
+        any frame of the video
+
+    notes_to_play : list
+        list containing already selected notes
+
+    candidate_white_keys : list
+        list of contours of white candidate keys
+
+    candidate_black_keys : list
+        list of contours of black candidate keys
+
+    white_keys_map : dict
+        dict mapping white contours id to white MiDi notes id
+
+    black_keys_map : dict
+        dict mapping black contours id to black MiDi notes id
+
+    """
     inside_black = False
     for key in candidate_black_keys:
         dist = np.abs(cv2.pointPolygonTest(np.array(key["contour"]),p,True))
@@ -833,17 +1121,49 @@ def detectPressedKeys(frame,
         mask_keyboard,
         keys, white_keys_map, black_keys_map,
         final_notes, stop_point):
+    
+    """Detects the pressed keys inside a frame
 
-    '''
-    stop_point =
-        None,
-        "shadows_white",
-        "shadows_black",
-        "hough_white",
-        "hough_black",
-    Different stop_point value indicates intermediate state of the pressed keys detection
-    '''
-    cv2.imwrite("zdacanc\\frame_a.png", frame)
+    Parameters
+    ---------
+    frame : numpy array
+        any frame of the video (with colors)
+
+    cur_frame_segmented : numpy array
+        the binary image containing the keyboard mask of current frame (with possibly overlapped hands)
+
+    mask_hand : numpy array
+        the binary image containing the hand mask of current frame
+
+    mask_keyboard : numpy array
+        contant keyboard mask containing full keyboard (without hands)
+
+    keys : list
+        list containing the contours of each key
+
+    white_keys_map : dict
+        dict mapping white contours id to white MiDi notes id
+
+    black_keys_map : dict
+        dict mapping black contours id to black MiDi notes id
+
+    final_notes : list
+        list that will contain the identified notes
+
+    stop_point : str
+        parameter to debug, a different string will stop the algorithm earlier and output an intermediate step.
+        Possible values:
+            None,
+            "shadows_white",
+            "shadows_black",
+            "hough_white",
+            "hough_black"
+
+    Outputs
+    ---------
+    final_frame : numpy array
+        a frame with highlighted landmarks and contours of detected keys 
+    """
 
     # white keys
     frame_shadows_white = cv2.bitwise_not(cv2.bitwise_or(cur_frame_segmented, mask_hand))
@@ -890,16 +1210,22 @@ def detectPressedKeys(frame,
                                   candidate_white_keys, candidate_black_keys,
                                   white_keys_map, black_keys_map)
         final_notes.append({"frame": len(final_notes), "notes": notes_to_play})
-
-    # cv2.imwrite("zdacanc\\frame_shadows_white.png", frame_shadows_white)
-    # cv2.imwrite("zdacanc\\frame_shadows_black.png", frame_shadows_black)
-    # cv2.imwrite("zdacanc\\frame_hough_white.png", frame_hough_white)
-    # cv2.imwrite("zdacanc\\frame_hough_black.png", frame_hough_black)
-    cv2.imwrite("zdacanc\\frame_z.png", frame)
     
     return frame
 
 def generateMidiFile(final_notes, title, fps):
+    """Generates MiDi file from list of notes
+    Parameters
+    ---------
+    final_notes : list
+        list containing identified notes
+
+    title : str
+        title of MiDi output file
+    
+    fps : float
+        frames per second of input video
+    """
     # convert the list of notes found to suitable format for MIDI
     final_notes_by_time = {}
     for i in range(len(final_notes)):
