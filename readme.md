@@ -88,13 +88,7 @@ utils.playVideo(..., save_video=True, video_name=..., ...)
 ```
 the notebook will also generate an output video with the detected pressed keys bounding boxes drawn, an example:
 
-<div style="text-align: center;">
-	<video width="640" height="360" controls>
-		<source src="final_results/covered_bolero.mp4" type="video/mp4">
-	</video>
-</div>
-
-https://github.com/laaners/POLIMI_IACV_PROJECT/raw/master/final_results/videos_w_detected_keys/covered_bolero.mp4
+https://github.com/laaners/POLIMI_IACV_PROJECT/assets/75478979/d19e68b0-fdbe-41e6-b1aa-b4955fb8bbd0
 
 ## Detailed report
 The pdf report and the ppt presentation are located in `pdf_ppt`, the [F05_Paesano_Hu.pdf](pdf_ppt/F05_Paesano_Hu.pdf) explains in detail the algorithm and reasoning applied
