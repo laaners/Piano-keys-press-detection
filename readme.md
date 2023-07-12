@@ -94,9 +94,7 @@ the notebook will also generate an output video with the detected pressed keys b
 	</video>
 </div>
 
-
-https://user-images.githubusercontent.com/6877923/123006036-64e2e780-d3b7-11eb-922e-018994b32da5.mov
-
+https://github.com/laaners/POLIMI_IACV_PROJECT/raw/master/final_results/videos_w_detected_keys/covered_bolero.mp4
 
 ## Detailed report
 The pdf report and the ppt presentation are located in `pdf_ppt`, the [F05_Paesano_Hu.pdf](pdf_ppt/F05_Paesano_Hu.pdf) explains in detail the algorithm and reasoning applied
